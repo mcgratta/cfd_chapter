@@ -39,63 +39,106 @@ It should be recognized that this topic is rapidly evolving and that this chapte
 
 This chapter does not provide a comprehensive description of CFD. There are already numerous introductory textbooks on the subject~\cite{Anderson, Ferziger, Patankar, Peyret, Versteeg}. Depending on the background of the author(s), these books tend to emphasize techniques developed for particular fields of science and engineering, such as aerospace, meteorology, or combustion. Discussion of issues related to the modeling of fire can be found in review articles by Cox~\cite{Cox:1995,Cox:1998}  and Novozhilov~\cite{Novozhilov}. Finally, a comprehensive description of the specific algorithms used by a particular CFD model can only be found within the manuals that accompany the software. A recent review by Olenick and Carpenter~\cite{Olenick} lists about a dozen CFD models developed specifically for fire. Some of these models were developed for specific fire scenarios or phenomena. Others were developed to handle a variety of fire scenarios, including JASMINE from the Fire Research Station (U.K.), the Fire Dynamics Simulator (FDS) from NIST (U.S.) and VTT (Finland), SMARTFIRE from the University of Greenwich (U.K.), and SOFIE, the product of a European consortium. A more recent development is the FireFOAM model from FM Global, which is based on the open source CFD code OpenFOAM. There are also general-purpose CFD models that have been used for fire simulations. These computer programs contain tens to hundreds of thousands of lines of instructions, along with manuals that contain hundreds of pages of documentation of the development, algorithms, and validation of the models.
 
-This chapter provides an introduction to the theory and practice of computational fluid dynamics as applied to the study of fire. Although the mathematical framework for the subject is more than 100 years old, it is only in the past 20 years that computers have become fast enough to make the models practical.
+This chapter provides an introduction to the theory and practice of computational fluid dynamics as applied to the study of fire. Although the mathematical framework for the subject is more than 100 years old, it is only in the past 30 years that computers have become fast enough to make the models practical.
 
 
 \section{Governing Equations}
 
-This section presents the conservation equations of mass, momentum, and energy that constitute the core of any CFD model. The derivation of these equations can be found in any textbook on the subject and will not be included here. Instead, a discussion of the various techniques used to make these equations tractable for numerical solution will follow. The most important of these is the turbulence model, a subject of considerable study and debate.
+This section presents the conservation equations of mass, momentum, and energy that are typically applied in CFD models of fire. The derivation of these equations can be found in any textbook on the subject and are discussed only briefly here. Instead, the focus shall be on assumptions and approximations that are typically applied to fire modeling.
 
-\subsection{Conservation Equations}
+\subsection{Coordinate System}
 
-The conservation equations for mass, momentum, and energy for a mixture of gases are briefly described here. A particularly useful reference for a more detailed description of the equations, the notation used, and the various approximations employed is Anderson, Tannehill, and Pletcher~\cite{Anderson}.
+In its most basic form, a CFD model is essentially a discretized form of the mass, momentum, and energy conservation equations. The term {\em discretized} means that the continuous equations are approximated over relatively small control volumes, or {\em grid cells}. The conservation equations are derived under the assumption that mass, momentum, and energy are conserved as the fluid flows in and out of the grid cells. It is convenient in fire to think in terms of small, rectangular boxes because the overall computational domain is often a collection of rectangular rooms, hallways, stairwells, etc. It is also convenient to adopt a Cartesian coordinate system such that any point in three space is defined by the spatial coordinates $\mathbf{x}=(x,y,z)$. The coordinate $z$ is usually applied to the vertical direction, and the coordinate system conforms to the right-hand rule.
 
-\subsubsection{Conservation of mass}
+CFD applied to other fields of engineering may adopt other coordinate systems that are more convenient. For example, global weather modeling might employ a spherical coordinate system. Aerospace applications might employ a cylindrical coordinate system with body-fitted grid cells surrounding the object of interest.
 
-The conservation equation for mass is
+
+\subsection{Physical Quantities of Interest}
+
+The solution of the discretized conservation equations yield fundamental properties of the fluid in each grid cell at a set of discrete time steps. CFD fire models typically treat the fluid as a mixture of ideal gas species. The {\em mass fraction} of each species, $Y_\alpha$, is the ratio of the mass of that species to the total mass of the mixture. These are non-dimensional quantities, and they sum to 1, $\sum_\alpha Y_\alpha = 1$. Likewise, the density of the gas mixture can be decomposed into components, $\rho = \sum_\alpha \rho Y_\alpha$. Thus, knowing the mass fractions of all the gas species is equivalent to knowing the density. The unit for density is typically kg/m$^3$.
+
+The velocity of the gas mixture is expressed by the vector $\mathbf{u}=(u,v,w)$. Each component of velocity is a function of space and time. The unit for velocity is typically m/s.
+
+The pressure, $p$, is typically decomposed into components:
 \begin{equation}
-\frac{\partial \rho}{\partial t} + \nabla \cdot \rho \mathbf{u} = 0
-\label{eq:masscon}
+   p(\mathbf{x},t) = p_\infty - \rho_0(z) g z + \tilde{p}(\mathbf{x},t)
 \end{equation}
-This equation is nothing more than a statement that mass is neither created nor destroyed. In words, the change in the density, $\rho$, at a given point in the flow field is equal to the net mass flux, $\rho \mathbf{u}$, across the boundary of a small control volume surrounding the point. For fire simulations, it is usually necessary to account explicitly for various individual gaseous species, for example, fuel and oxygen. Thus, the mass conservation equation is often written as a set of transport equations for the mass fractions of the individual gaseous species, $Y_\alpha$:
+where $p_\infty$ is the pressure at ground level or other fixed reference point, $\rho_0$ is the initial or ambient background density field which is only a function of the vertical coordinate $z$, and $\tilde{p}$ is the perturbation pressure that drives the flow. The unit for pressure is typically the Pascal, Pa.
+
+The temperature of the gas mixture is typically not solved for directly, but rather the {\em specific enthalpy}:
+\begin{equation}
+  h_{\rm s} = \sum_\alpha h_{{\rm s},\alpha}(T) \, Y_\alpha \quad ; \quad h_{{\rm s},\alpha}(T) = \int_{T_{\rm ref}}^T c_{p,\alpha}(T') \, \mbox{d}T'
+\end{equation}
+The values of the temperature-dependent, specific heats, $c_{p,\alpha}(T)$, are typically tabulated in reference handbooks. The unit for specific enthalpy and specific heat are typically J/kg and J/(kg$\cdot$K), respectively.
+
+
+
+\subsection{Conservation of mass}
+
+The conservation equations are typically derived by considering a fixed, closed volume, $\Omega$, bounded by the surface, $\partial \Omega$. Conservation of mass asserts that the rate of change of the mass of each gas species $\alpha$ within the volume is equal to the amount of species $\alpha$ (1) flowing into the volume, (2) diffusing into the volume, or (3) being generated via chemical reactions:
+\begin{equation}
+   \frac{ \partial }{\partial t} \int_\Omega  (\rho Y_\alpha) \, {\rm d}V = -\int_{\partial \Omega} (\rho Y_\alpha \mathbf{u}) \cdot {\rm d}{\mathbf S} + \int_{\partial \Omega} (\rho D_\alpha \nabla Y_\alpha) \cdot {\rm d}\mathbf{S} + \int_\Omega \dot{m}_\alpha''' \, {\rm d}V
+   \label{eq:spec_con_vol}
+\end{equation}
+This equation can be rewritten (using Green's Theorem) in an alternative form favored by modelers who employ a {\em finite-difference} as opposed to a {\em finite-volume} formulation of the governing equations:
 \begin{equation}
 \frac{\partial (\rho Y_\alpha)}{\partial t} + \nabla \cdot (\rho Y_\alpha \mathbf{u}) = \nabla \cdot \left( \rho D_\alpha \nabla Y_\alpha \right) + \dot{m}_\alpha'''
 \label{eq:speccon}
 \end{equation}
-When all of the species equations are added together, the mass diffusion and production terms on the right-hand side sum to zero, leaving the original mass conservation equation.
+When all of the species equations are added together, the mass diffusion and production terms on the right-hand side sum to zero, yielding a conservation equation for total mass:
+\begin{equation}
+\frac{\partial \rho}{\partial t} + \nabla \cdot \rho \mathbf{u} = 0
+\label{eq:masscon}
+\end{equation}
+Notice that the source and diffusion terms sum to zero:
+\begin{equation}
+   \sum_\alpha  \dot{m}_\alpha''' = 0 \quad ; \quad \sum_\alpha \rho D_\alpha \nabla Y_\alpha = 0
+\end{equation}
+Note that in CFD fire models, it is common practice to apply Ficks law:
+\begin{equation}
+   \mathbf{J_\alpha} = -\rho D_\alpha \nabla Y_\alpha
+\end{equation}
+The diffusion coefficient, $D_\alpha$, provides the relationship between the diffusion flux $\mathbf{J}_\alpha$ of species $\alpha$ and the spatial gradient of the local mass fraction, $Y_\alpha$. The minus sign expresses that the diffusion flux is always from higher concentration to lower concentration. The unit of $D_\alpha$ is typically m$^2$/s.
 
-\subsubsection{Conservation of Momentum}
+\subsection{Conservation of Momentum}
 
 The conservation equation for momentum is
 \begin{equation}
-\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \mathbf{f} + \nabla \cdot \tens{\tau}
+\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla \cdot (\rho \mathbf{u} \mathbf{u}) = -\nabla p + \nabla \cdot \mu \left( \nabla \mathbf{u} + (\nabla \mathbf{u})^T \right) +  \nabla (\lambda \nabla \cdot \mathbf{u}) + \rho \mathbf{g}
 \label{eq:momcon}
 \end{equation}
-The momentum equation is written in compact notation here to emphasize that it is essentially Newton's Second Law of Motion, or simply Force $=$ Mass $\times$ Acceleration. The forces that drive the fluid consist of the pressure gradient, $\nabla p$, friction (in the form of the viscous stress tensor, $\tens{\tau}$), and external force terms, $\mathbf{f}$, such as buoyancy. A complete expansion of the various terms can be found in the Appendix.
+The momentum equation is written in compact notation here to emphasize that it is essentially Newton's Second Law of Motion, which states that the change in momentum of a small parcel of fluid is proportional to the forces applied. The forces that drive the fluid consist of the pressure gradient, $\nabla p$, friction, and buoyancy, $\rho \mathbf{g}$. A complete expansion of the various terms can be found in the Appendix.
 
-\subsubsection{Conservation of Energy}
+The viscosity, $\mu$, is a function of temperature and gas composition, and is obtained via table look-up. The second coefficient of viscosity, $\lambda$, is typically assumed to be related to the viscosity, $\lambda \approx -2/3 \, \mu$. In large-scale fire modeling of turbulent fires, as opposed to small-scale modeling of laminar flames, the exact form of $\mu$ and $\lambda$ are not relevant because these terms are replaced by expressions related to the {\em turbulence model}, a topic discussed in Section~\ref{section:turbulence}.
+
+\subsection{Conservation of Energy}
 
 The conservation equation for energy is
 \begin{equation}
-\frac{\partial (\rho h)}{\partial t} = \nabla \cdot (\rho h \mathbf{u}) = \frac{Dp}{Dt} + \dot{q}''' - \nabla \cdot \mathbf{q} + \epsilon
+\frac{\partial (\rho h_{\rm s})}{\partial t} + \nabla \cdot (\rho h_{\rm s} \mathbf{u}) = \frac{Dp}{Dt} + \dot{q}''' - \nabla \cdot \mathbf{q}'' + \epsilon
 \label{eq:encon}
 \end{equation}
-As in the mass conservation equation, the sensible enthalpy, $h$, at a given point changes according to the net energy flux across the boundary of a small control volume surrounding the point. Now, however, there are additional source terms on the right-hand side of the equation related to the pressure, combustion heat release rate, radiation and conduction, and kinetic energy dissipation, respectively. For fire applications, the contributions from the pressure term and the dissipation term are negligible, except in situations where the compartment of interest is sealed and the pressure rises substantially.
+As in the mass conservation equation, the sensible enthalpy, $h_{\rm s}$, at a given point changes according to the net energy flux across the boundary of a small control volume surrounding the point. Now, however, there are additional source terms on the right-hand side of the equation related to the pressure, combustion heat release rate, radiation and conduction, and kinetic energy dissipation, respectively. For fire applications, the contributions from the pressure term and the dissipation term are negligible, except in situations where the compartment of interest is sealed and the pressure rises substantially.
 
-Equations~\ref{eq:masscon} through \ref{eq:encon} constitute a set of partial differential equations for the density (or component mass fractions), velocity, pressure, and sensible enthalpy of the fluid. The momentum equation is actually three equations for the three components of velocity: $u$, $v$, and $w$ making five equations for six unknowns. To close the system, an {\em equation of state} is needed to relate the pressure, $p$, and sensible enthalpy, $h$. The latter is a function of the specific heat and temperature of the fluid:
+The heat release rate per unit volume, $\dot{q}'''=-\sum_\alpha \dot{m}_\alpha''' h_{{\rm f},\alpha}$, where $h_{{\rm f},\alpha}$ is the heat of formation of gas species $\alpha$. The total heat release rate of the fire, $\dot{Q}=\int \dot{q}'''  {\rm d}V$, where $V$ is the volume of the entire domain.
+
+The term $\mathbf{q}''$ represents the conductive, diffusive, and radiative heat fluxes:
 \begin{equation}
-h = \int_{T_0}^T c_p \, dT
-\label{eq:hdef}
+   \mathbf{q}'' = -k \nabla T - \sum_\alpha h_{\rm s,\alpha}  \rho  D_\alpha \nabla Y_\alpha + \mathbf{q}_{\rm r}''  \label{bqdot_def}
 \end{equation}
-For most fire applications, it is sufficient to assume a {\em perfect gas}:
+where $k$ is the thermal conductivity and $D_\alpha$ is the diffusivity of species $\alpha$.
+
+\subsection{Equation of State}
+
+The conservation equations described above provide the density of each gas species, three components of velocity, and the sensible enthalpy. However, to close the system, an {\em equation of state} is needed to relate the pressure, $p$, to the other thermodynamic variables. For most fire applications, it is sufficient to assume a {\em perfect gas}:
 \begin{equation}
-p = \frac{\rho {\cal R} T}{\overline{W}} \quad ; \quad \overline{W} = \frac{1}{\sum (Y_\alpha / W_\alpha)}
+p = \frac{\rho {\cal R} T}{\overline{W}} \quad ; \quad \overline{W} = \frac{1}{\sum_\alpha (Y_\alpha / W_\alpha)}
 \label{eq:pgas}
 \end{equation}
 where ${\cal R}$ is the universal gas constant and $\overline{W}$ is the average molecular weight of the gas mixture.
 
 
-\subsubsection{Additional Assumptions}
+\subsection{Additional Assumptions}
 
 The foregoing equations form the basis for a wide variety of engineering applications but not without the further application of simplifying assumptions unique to each field. The only assumptions made thus far are that the fluid is a perfect gas and that the viscous stress is linearly dependent on the strain. A further approximation can be made here, exploiting the fact that fire-driven flows are substantially slower than the speed of sound. By assuming that the pressure is constant (or at most a time-varying average) in the equation of state and the energy equation, the number of unknowns is reduced from six to five, as temperature can now be found from the density. More importantly, there is no longer a need to account for pressure fluctuations that propagate at the speed of sound, a fact that makes the numerical solution of the equations more tractable because the time step size is limited only by the flow speed, not the sound speed~\cite{Rehm}.
 
@@ -103,100 +146,91 @@ In the sections to follow, additional assumptions will be imposed on the governi
 
 
 \section{Turbulence Modeling}
+\label{section:turbulence}
 
-The governing conservation equations describe the transport of mass, momentum, and energy via convection and diffusion (material diffusivity, viscosity, thermal conductivity). In large-scale fire applications, convection is the primary mode of transport of heat and combustion products, but the diffusive processes play a significant role in the flames and in boundary layers near solid surfaces. Capturing the large-scale convective transport and the small-scale diffusive processes in the same simulation requires too much computation, even for current-generation computers. Consequently, most practical fire simulations employ models to describe subgrid-scale, or ``unresolvable,'' phenomena. The most important of these are the turbulence models.
 
-The most popular numerical techniques for approximating the governing equations are roughly categorized according to their spatial and temporal fidelity: direct numerical simulation (DNS), Reynolds-averaged Navier-Stokes (RANS), and large eddy simulation (LES). DNS is really nothing more than a direct numerical solution of the governing equations. RANS and LES employ models of the unresolved subgrid dissipative processes. RANS averages over relatively large spatial and temporal scales than those that are characteristic of the given numerical grid or the fundamental frequency of the fire, whereas LES attempts to compute as much of the ``resolvable'' length and time scales ({\em i.e.}, the ``large eddies'') as possible.
+\subsection{Reynolds Averaging}
 
-\subsection{Direct Numerical Simulation (DNS)}
-
-Direct numerical simulation (DNS) means that the governing equations are solved numerically with no modifications to the form presented above, which implies that all of the relevant temporal and spatial scales are resolved directly without invoking any models to represent the diffusive terms, like the viscosity, thermal conductivity, and material diffusivity. Because this technique demands very fine spatial and temporal resolution (less than 1~mm and 1~ms, respectively), it is limited to small laminar flames and sometimes small turbulent jets. DNS is still not practical for large-scale fire simulations, and nothing more is included in this chapter on the subject.
-
-\subsection{Reynolds-Averaged Navier-Stokes (RANS)}
-
-The approach to modeling turbulence in many commercial and fire-specific CFD models is to solve a statistically time-averaged form of the conservation equations, often referred to as the Reynolds-averaged Navier-Stokes (RANS)\footnote{A density-weighted variant of Reynolds averaging (Favre averaging) is often necessary for the treatment of regions where density fluctuations have a significant effect. This variant is not usually necessary for smoke movement studies but can be important close to the fire source. This treatment is not presented here but can be found in, for example, Cox~\cite{Cox:1995}.} equations after Osborne Reynolds who introduced the idea over a century ago. The starting point in Reynolds averaging is to decompose the velocity components, enthalpy, and species mass fractions, into a time-averaged component (denoted by an overbar) and a fluctuating component (denoted by a prime):
+In a turbulent flow, flow quantities, like a velocity component or the temperature, at a particular location exhibit fluctuating time histories that cannot be completely resolved by the discrete time step used in the solution of the governing equations. Consider a time period $\Delta t$ that is relatively long compared to the largest turbulent time scales, but sufficiently short compared to fluctuations in the mean flow. The mean value of the quantity, in this case the $x$ component of velocity, can be defined:
 \begin{equation}
-\phi(\mathbf{x},t) = \bar{\phi}(\mathbf{x},t) + \phi'(\mathbf{x},t)
-\label{eq:phidef}
+   \overline{u}(\mathbf{x},t) = \frac{1}{\Delta t} \int_{t-\Delta t}^t  u(\mathbf{x},t') \, {\rm d}t'
 \end{equation}
-Notice that for transient flows the time-averaged component is still a function of time, representing the evolution of the mean flow field. In typical fire simulations, the time scale associated with the time-averaged component is on the order of several seconds, whereas that of the fluctuating component is on the order of milliseconds. Substituting the decomposed primitive variables into the conservation equations (Equations~\ref{eq:masscon}, \ref{eq:momcon}, and \ref{eq:encon}) and then applying the same time-averaging process to the entire system of equations yields a set of equations that is similar in form to the original equations, with the mass conservation equation remaining unchanged:
+The instantaneous value, $u$, can be expressed as the sum of the {\em Reynolds-averaged} value, $\bar{u}$, and the relatively high frequency, randomly fluctuating component, $u'$:
 \begin{equation}
-\frac{\partial (\rho \bar{\mathbf{u}})}{\partial t} + \nabla \cdot (\rho \bar{\mathbf{u}} \bar{\mathbf{u}}) = -\nabla p + \mathbf{f} + \nabla \cdot \bar{\tens{\tau}}
-- \nabla \cdot \rho \overline{ \mathbf{u}' \mathbf{u}' }
-\label{eq:filmomcon}
+   u(\mathbf{x},t) = \overline{u}(\mathbf{x},t) + u'(\mathbf{x},t)
 \end{equation}
+Noting that 
 \begin{equation}
-\frac{\partial (\rho \bar{h})}{\partial t} + \nabla \cdot (\rho \bar{h} \bar{\mathbf{u}}) = \frac{Dp}{Dt} + \dot{q}''' - \nabla \cdot \bar{\mathbf{q}}
-+ \bar{\epsilon} - \nabla \cdot \rho \overline{ \mathbf{u}' h' }
-\label{eq:filencon}
+\overline{u'}=0 \quad ; \quad \overline{\overline{u}} = \overline{u} \quad ; \quad \overline{uv} = \overline{ (\overline{u}+u')(\overline{v}+v')} = \bar{u}\bar{v} + \overline{u'v'}
 \end{equation}
-Notice that the Reynolds-averaging process has introduced additional terms on the right-hand sides of the equations and increased the number of unknowns. Thus, the system of equations is no longer closed ({\em i.e.}, there are more unknowns than equations). The additional terms are referred to as the Reynolds stresses and the turbulent scalar flux, respectively. The scalar, $h$, is the sensible enthalpy, and similar equations can be derived for the other scalars ({e.g.}, gas species mass fractions). Note that the pressure and density in the preceding equations refer to their time-averaged components.
+this averaging technique can be applied to the conservation equations, and a slightly modified set of equations is obtained for the Reynolds-averaged quantities. They are very similar to the original equations, but some additional terms appear---Reynolds stresses in the momentum equations and turbulent heat fluxes in the energy equation. 
 
-The majority of commercial and fire-specific CFD models that employ the RANS approach use an eddy viscosity turbulence model to close the set of equations. The basic idea is that the unresolved, turbulent fluctuations can be modeled with diffusive terms that effectively represent the dissipation of turbulent energy:
+The derivation of the Reynolds-averaged Navier-Stokes equation is included in any textbook on CFD. As a simple example, consider a vertical, flat wall with a steady stream of constant-temperature air flowing horizontally, as shown in Fig.~\ref{eddy_diagram}. The Reynolds-averaged mass and momentum equations can be greatly simplified because the time derivatives of the mean flow drop out, the density, $\rho$, is constant, and force terms like the pressure gradient and gravity drop out as well, leaving:
 \begin{equation}
--\rho \overline{ u_i' u_j' } = \mu_t \left( \frac{\partial \bar{u}_i}{\partial x_j} + \frac{\partial \bar{u}_j}{\partial x_i} \right) - \frac{2}{3} \delta_{ij} \rho k \quad ; \quad \delta_{ij} = \left\{ \begin{array}{l} 1 \; \mathrm{if} \; i=j \\ 0 \; \mathrm{if} \; i\neq j \end{array} \right.
-\label{eq:rans}
+   \frac{\partial \bar{u}}{\partial x} + \frac{\partial \bar{v}}{\partial y} = 0 \quad ; \quad
+   \bar{u} \frac{\partial \bar{u}}{\partial x} + \bar{v} \frac{\partial \bar{u}}{\partial y} = \frac{\partial}{\partial y} \left( \frac{\mu}{\rho} \frac{\partial \bar{u}}{\partial y} \right) -  \frac{\partial}{\partial y} \left( \overline{u'v'} \right) \label{bleq}
 \end{equation}
-\begin{equation}
--\rho \overline{ u_j' h' } = \lambda_t \frac{\partial \bar{h}}{\partial x_j}
-\end{equation}
-Here  $\mu_t$ is the turbulent (eddy) viscosity, $k$ the turbulent kinetic energy, and $\lambda_t$ the turbulent diffusivity, which is related to the eddy viscosity by the expression
-\begin{equation}
-\lambda_t = \frac{\mu_t}{\sigma_t}
-\end{equation}
-where $\sigma_t$ is known as the turbulent Prandtl or Schmidt number, depending on whether the scalar quantity is an energy or species variable. It is usually assigned a constant value depending on the scalar variable in question.
+These equations for the Reynolds-averaged velocity components are identical to the original equations except for the second term of the momentum equation. This term is non-zero only if $u'$ and $v'$ are statistically correlated. This is the case, as explained with the schematic in Fig.~\ref{eddy_diagram}. In turbulent flows such as this, eddies form due to wall fraction. Typically these eddies cannot be {\em resolved}; that is, they are too small relative to the underlying numerical grid, as highlighted in Fig.~\ref{vector_plot}. Looking at the simplified eddy in Fig.~\ref{eddy_diagram}, its instantaneous motion on its left side is in the negative $y$ direction ($v'<0$). This motion draws air with a relatively high mean velocity in the $x$ direction into a region with a lower mean velocity; thus, $u' > 0$. From a statistical point of view, the velocity fluctuations in both directions are correlated, $\overline{u'v'} < 0$. At the right side of the eddy, the instantaneous motion is upward ($v' > 0$) and air with a relatively low mean velocity is brought into a region with a relatively high mean velocity, causing $u' < 0$. Thus, again $\overline{u'v'}<0$.
 
-For fire simulations, a two-equation eddy viscosity model is commonly used. This model, in effect, allows the turbulence to be characterized by a velocity and a length scale that varies at each grid cell in the computational domain. The two equation model that is employed in the majority of RANS applications in fire engineering is the $k$-$\epsilon$  model. Here two additional transport equations are solved; one for the turbulent kinetic energy, $k$, and one for its rate of dissipation, $\epsilon$. These quantities form the turbulent viscosity in Equation~\ref{eq:rans}:
-\begin{equation}
-\mu_t = \rho C_\mu \frac{k^2}{\epsilon}
-\label{eq:mudef}
-\end{equation}
-The factor $C_\mu$ is an empirical constant. Details of these equations are provided in CFD textbooks. Note that a modification of the basic $k$-$\epsilon$ model is often made in fire applications, in which buoyancy source terms for the $k$ and $\epsilon$ equations are added. These terms ensure that the effects of stable stratification in hot gas layers and the destabilizing thermal gradients in rising plumes are adequately described. Details are discussed by Cox~\cite{Cox:1998}.
+\begin{figure}[ht]
+\setlength{\unitlength}{1cm}
+\begin{picture}(10,5)(-1,-1)
+\put(4,1.5){\circle{0.5}}
+\put(4.25,1.5){\vector(0, 1){0.5}}
+\put(3.75,1.5){\vector(0,-1){0.5}}
+\put(0,0){\vector(1,0){3}}
+\put(0,0){\vector(0,1){3}}
+\put(0,0.5){\vector(1,0){0.5}}
+\put(0,1.0){\vector(1,0){1.0}}
+\put(0,1.5){\vector(1,0){1.5}}
+\put(0,2.0){\vector(1,0){2.0}}
+\put(0,2.5){\vector(1,0){2.5}}
+\put(-0.2,3.0){$y$}
+\put(3.0,-0.2){$x$}
+\put(0.9,2.75){$\bar{u}(x,y)$}
+\put(2.75,1.0){$v'<0$}
+\put(4.40,1.75){$v'>0$}
+\end{picture}
+\caption{Schematic diagram of a small eddy in the presence of a boundary layer flow.}
+\label{eddy_diagram}
+\end{figure}
 
-The $k$-$\epsilon$  model has been used successfully for many engineering applications. Its limitation in treating, for example, swirling flows, flow separation, and so on is due partly to the inherent assumption that the modeled turbulence is isotropic, that is, that the unresolved flow field has no cohesive structure. There are a number of variants of the $k$-$\epsilon$  model, available in commercial CFD models, that claim to provide improved results for some flows ({\em e.g.}, the RNG $k$-$\epsilon$  model~\cite{Yakhot} and the $k$-$\omega$ model~\cite{Wilcox}). Research into nonlinear eddy viscosity turbulence models that attempt to incorporate  directional  effects  is  being  undertaken within the CFD community but, as far as the authors are aware, have not been applied to fire problems. Another approach, applied mainly  outside  of fire, is to solve individual differential equations for Reynolds stresses and turbulent scalar fluxes that appear in Equations~\ref{eq:filmomcon} and \ref{eq:filencon}. However, the standard $k$-$\epsilon$ model remains the most commonly used RANS technique in fire applications.
 
-
-\subsection{Large Eddy Simulation (LES)}
-
-The derivation of LES models is very similar to that of the RANS models, albeit with subtle differences in the interpretation of the decomposition of the primitive variables. RANS emphasizes temporal averaging, whereas LES emphasizes spatial averaging, or {\em filtering}. Regardless, the mechanics of the derivation are essentially the same, and the simplest of the LES models makes the same ``eddy viscosity'' argument in replacing the unresolved convection terms with diffusion terms. The key difference between the techniques lies in the magnitude of the diffusive coefficient, the ``eddy'' viscosity. With LES, one attempts to resolve the flow field as faithfully as possible on a given numerical grid. In other words, flow structures, like swirling eddies, can span just a few grid cells (Figure~\ref{vector_plot}). To achieve this result, the eddy viscosity must be small enough to avoid smoothing out these small, but resolvable, eddies, but large enough to ensure numerical stability and account for the dissipation of energy at sub-grid scales.
-
-\begin{figure}[b]
+\begin{figure}[p]
 \includegraphics[width=\textwidth]{Fig_plume_vectors}
 \caption{What is meant by ``resolvable.'' At right is an instantaneous map of the flow vectors for an LES simulation of a helium plume. the inset shows the smallest ``eddy'' that can be supported by the numerical grid, the spacing of which is indicated by the distance between the arrows.}
 \label{vector_plot}
 \end{figure}
 
-To better understand the eddy viscosity model, the original Navier-Stokes equations are examined. An evolution equation for the kinetic energy of the gas is formed by taking the dot product of the momentum from Equation~\ref{eq:momcon} and the velocity vector $\mathbf{u}$:
+
+This type of argument led to the following ``eddy viscosity'' modeling concept, introduced by Boussinesq:
 \begin{equation}
-\rho \frac{D \mathbf{u}}{Dt} \cdot \mathbf{u} \equiv \rho \frac{D(|\mathbf{u}|^2/2)}{Dt} = \cdots - \epsilon
-\label{eq:momdotu}
+-\overline{u'v'} = \frac{\mu_{\rm t}}{\rho} \frac{\partial \bar{u}}{\partial y}
 \end{equation}
-A term emerges on the right-hand side known as the dissipation rate (see Appendix for details):
-\begin{equation}
-\epsilon \equiv \tens{\tau} \cdot \nabla \mathbf{u} = \mu \left[ 2 \left( \frac{\partial u}{\partial x} \right)^2 + \cdots \right]
-\label{eq:epsilondef}
-\end{equation}
-which appears as a source term in the energy conservation Equation~\ref{eq:encon}:
-\begin{equation}
-\frac{D}{Dt} (\rho h) = \cdots + \epsilon
-\end{equation}
-Extra terms have been hidden to make the point more clearly, and no approximations have been introduced thus far to the Navier-Stokes equations. This exercise merely explains in mathematical terms how the kinetic energy of the flow is converted into thermal energy by the action of the viscosity, $\mu$. In the early 1960s, a meteorologist named Joseph Smagorinsky~\cite{Smagorinsky} suggested, based mainly on dimensional arguments, that the effect of the viscosity could modeled by a ``turbulent'' viscosity coefficient:
-\begin{equation}
-\mu_t = \rho (C_s \Delta)^2 \left[ 2 \left( \frac{\delta \bar{u}}{\delta x} \right)^2 + \cdots \right]^{\frac{1}{2}}
-\label{eq:muLES}
-\end{equation}
-where $C_s$ is an empirical constant, $\Delta$ is a filter length comparable to the size of a grid cell, and the expression in brackets has the same functional form as the kinetic energy dissipation rate. The notation $\delta \bar{u}/\delta x$ emphasizes that the turbulent viscosity is calculated from finite difference approximations of the gradients of the computed velocity components. The other diffusive parameters, the thermal conductivity and material diffusivity, are related to the eddy viscosity through the expressions
-\begin{equation}
-k_t = \frac{\mu_t \, c_p}{\mathrm{Pr}_t} \quad ; \quad D_t = \frac{\mu_t}{\rho \, \mathrm{Sc}_t}
-\end{equation}
-The ``turbulent'' Prandtl and Schmidt numbers are assumed to be constant and of order unity. The appeal of LES is that no additional equations need be solved, as in the RANS $k$-$\epsilon$  model, and that the dynamics of the fire are captured in the simulation, rendering a more realistic-looking flow field than the time-averaged RANS model. The drawback of LES is that it demands that the model user pay close attention to the choice of numerical grid because the accuracy of the technique can be degraded significantly if there are not enough grid cells to describe the flow field adequately. Various perspectives on LES in general can be found in Pope~\cite{Pope}.
+In other words, a ``turbulent'' or ``eddy'' viscosity is simply added to the molecular viscosity in Eq.~(\ref{bleq}). The form of the eddy viscosity is the subject of the next section.
 
 
-\subsection{Other Approaches}
+\subsection{Turbulence Modeling}
 
-Detached eddy simulation (DES), formulated originally by Spalart {\em et al.}~\cite{Spalart}, combines the RANS and LES approaches discussed above. At solid boundaries and locations where the turbulent length scale is less than the mesh dimension the RANS treatment for turbulence is employed. At other locations, where the mesh is suitably resolved, LES modeling is employed. This approach has the potential benefit of reducing the overall mesh requirement to achieve a given level of turbulent flow resolution. The mesh generation process, however, tends to be more challenging.
+The purpose of the eddy viscosity is to model the transfer of energy at length and time scales that are unresolved by the mean flow variables. The largest turbulence scales are called the {\em integral} scales. The smallest scales are called the {\em Kolmogorov} scales. A detailed discussion of the spectrum is considered beyond the scope of this section, but suffice it to say that most of the turbulent kinetic energy is in the integral scales, while turbulence is dissipated at the Kolmogorov scales where viscous damping converts the turbulent kinetic energy into heat. The notion of energy cascade, introduced by Richardson, is worth mentioning:
+\begin{itemize}
+\item Energy is taken from the mean flow and transferred to kinetic energy of turbulent eddies; this occurs around the integral scales; 
+\item The turbulent eddies break up, transferring their energy to the eddies of smaller scale; a relatively small amount of energy is dissipated at this stage;
+\item The break-up process, or {\em cascade}, of eddies continues until the eddies become so small that they cannot survive the damping action of viscosity;
+\item The dissipation takes place at the smallest turbulence scales.
+\end{itemize}
+Whereas the dissipation takes place at the smallest scales, the dissipation rate is determined by the production rate of turbulence from the mean flow in the energy containing range. This phenomenology is reflected in the choice of turbulence model. One extreme approach is not to model turbulence at all, but rather to resolve completely all turbulent motion down to the smallest scales. However, these small scales are typically on the order of 1~mm or less, requiring an excessive amount of computing resources. Making matters worse, most of the computer time and memory is devoted to simulating the smallest scales~\cite{Pope:2000}, whereas the primary interest is typically in the large scale flow phenomena.
 
-A fundamentally different approach to CFD is provided by the so-called Lattice-Boltzmann method (LBM). Instead of the Navier-Stokes equations, the discrete Boltzmann equation is solved in which the fluid is treated as a set of particles rather than as a continuum. These particles are tracked numerically through a discrete lattice mesh that encompasses the domain of interest, and are allowed to collide with each other and the bounding surfaces. While LBM models offer some advantages over traditional CFD, in particular in respect to complex geometries and parallel computing, the authors are not aware of the application of the Lattice-Boltzmann method to fire problems, and it is not discussed any further.
+The other extreme in turbulence modeling is known as RANS (Reynolds-Averaged Navier-Stokes). In this approach, Reynolds averaging is applied and all turbulent motion, i.e. the entire turbulent spectrum is modeled. Only the mean flow is resolved. For example, a fire plume simulated with a RANS model does not exhibit the characteristic pulsations and large eddy formation as shown in Fig.~\ref{vector_plot}. Rather, a steady upward flow field results, and the action of the pulsation and large eddy formation is modeled with relatively large diffusive terms in the momentum and energy equations. The advantages of the RANS approach are that the computational mesh only needs to be fine enough to resolve the mean flows, and the time step (in transient calculations) can be chosen on the basis of mean flow phenomena. There are major disadvantages, however. First, all turbulence is modeled. Knowing that the largest turbulent scales are configuration dependent, it cannot be expected that a single RANS model can deal with arbitrary configurations in a reliable manner. Second, in fire related flows large scale flow unsteadiness often plays an important role; for example, in the entrainment process of a fire plume. Such unsteadiness is not captured in (unsteady) RANS and must be modeled. Again, being configuration dependent, RANS models cannot be expected to be as accurate as approaches where this unsteadiness is resolved.
+
+This explains the popularity of the LES (Large-Eddy Simulations) technique in CFD for fire related flows. In this technique, the large scale eddies are resolved and only the effect of the small scale eddies is modeled. This technique offers the advantage of resolving the large-scale flow unsteadiness (and buoyancy effects). Also, the unacceptable fineness of the computational mesh as required in DNS is avoided. Yet, there is a very important caveat. Indeed, in order to guarantee the quality of LES results, 80~\% of the turbulent kinetic energy must be resolved~\cite{Pope:2000}. It is common practice to use the computational mesh as filter in the LES approach, i.e. the size of the computational mesh cells determines the size of the eddies still resolved. In many CFD simulations performed on current computers, the mesh size is in the order of 10~cm or more. Very often, it cannot be guaranteed that 80~\% of the turbulent kinetic energy is effectively resolved, so that care must be taken in the interpretation of the CFD results. In other words, blind belief in the exactness of under-resolved LES must be avoided. Also, it must be understood that if the computational mesh is used as filter for the instantaneous Navier-Stokes equations, as is common practice in the fire safety science community, no grid independent results can be expected from LES. Indeed, as the filter of the equations itself is modified, the results inevitably change. This is not the case in RANS simulations, where the results become independent of the mesh applied, provided it is fine enough.
+
+
+
+
+
+
+
 
 
 
@@ -549,15 +583,7 @@ A significant proportion of fire fatalities can be attributed to the inhalation 
 Many  of  the  earliest  examples  of  the  application of CFD to fire engineering were in smoke movement applications~\cite{Pericleous, Cox:1990}. Simulations were at that time restricted to a few tens of thousands of grid cells. Although this number has increased to hundreds of thousands or even millions of cells, many of the modeling issues remain the same and are discussed later~\cite{Kumar}.
 
 
-\paragraph{Smoke transport in a mechanically ventilated library}
 
-In collaboration with Olof Granlund Oy, ANSYS Europe Ltd. conducted a CFD analysis of the movement of smoke generated by a fast-growing fire, with a peak heat release rate of 550~kW, inside a library for which the ventilation system was left running in its normal mode of operation. The building has a pitched, vented glass roof and diffusers at various elevations. ANSYS CFX is a general purpose, commercial CFD model that has a history in fire modeling dating back to the investigation of the 1987 Kings Cross fire in London~\cite{Simcox}. Because it is designed to handle virtually any type of geometry, a model like this one can employ a numerical mesh that conforms to the unusual shape of the building. In this case, an unstructured mesh with 3.2 million mesh elements was used. Figure~\ref{ANSYS} shows a contour map of visibility distance after 3 minutes in a vertical slice through the building.
-
-\begin{figure}[ht]
-\includegraphics[width=\textwidth]{Fig_library}
-\caption{Map of visibility in a vertical plane at time = 3 minutes for a fire in a library building. (Figure courtesy ANSYS Europe Ltd.)}
-\label{ANSYS}
-\end{figure}
 
 \paragraph{Smoke transport in a historic landmark}
 
@@ -661,14 +687,14 @@ Moving forward will require a new generation of engineers who have expertise in 
 $c_p$ 	\hspace{1in}     \= specific heat \\
 $D_\alpha$	             \> material diffusivity of species $\alpha$ \\
 $\mathbf{f}$	         \> external body force \\
-$h$                      \>	sensible enthalpy \\
-$h_c$ 	                 \> convective heat transfer coefficient \\
+$h_{\rm s}$              \>	sensible enthalpy \\
+$h_{\rm c}$ 	         \> convective heat transfer coefficient \\
 $I$	                     \> radiant intensity \\
 $k$	                     \> thermal	conductivity; turbulent	kinetic energy \\
 $\dot{m}_\alpha'''$      \> mass production (destruction) rate of species $\alpha$ per unit volume \\
 $p$	                     \> pressure \\
 Pr	                     \> Prandtl number \\
-$\mathbf{q}$	         \> heat flux vector \\
+$\dot{\mathbf{q}}''$	 \> heat flux vector \\
 $\dot{q}''$              \> heat release rate per unit area \\
 $\dot{q}'''$             \> heat release rate per unit volume \\
 $\cal R$                 \> universal gas constant \\
