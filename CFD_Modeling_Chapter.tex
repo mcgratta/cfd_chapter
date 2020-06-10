@@ -10,7 +10,7 @@
 
 \makeindex             % used for the subject index please use the style svind.ist with your makeindex program
 
-% Test comment by Randy McDermott
+% Test comment by Kevin
 
 \begin{document}
 
@@ -159,11 +159,11 @@ The instantaneous value, $u$, can be expressed as the sum of the {\em Reynolds-a
 \begin{equation}
    u(\mathbf{x},t) = \overline{u}(\mathbf{x},t) + u'(\mathbf{x},t)
 \end{equation}
-Noting that 
+Noting that
 \begin{equation}
 \overline{u'}=0 \quad ; \quad \overline{\overline{u}} = \overline{u} \quad ; \quad \overline{uv} = \overline{ (\overline{u}+u')(\overline{v}+v')} = \bar{u}\bar{v} + \overline{u'v'}
 \end{equation}
-this averaging technique can be applied to the conservation equations, and a slightly modified set of equations is obtained for the Reynolds-averaged quantities. They are very similar to the original equations, but some additional terms appear---Reynolds stresses in the momentum equations and turbulent heat fluxes in the energy equation. 
+this averaging technique can be applied to the conservation equations, and a slightly modified set of equations is obtained for the Reynolds-averaged quantities. They are very similar to the original equations, but some additional terms appear---Reynolds stresses in the momentum equations and turbulent heat fluxes in the energy equation.
 
 The derivation of the Reynolds-averaged Navier-Stokes equation is included in any textbook on CFD. As a simple example, consider a vertical, flat wall with a steady stream of constant-temperature air flowing horizontally, as shown in Fig.~\ref{eddy_diagram}. The Reynolds-averaged mass and momentum equations can be greatly simplified because the time derivatives of the mean flow drop out, the density, $\rho$, is constant, and force terms like the pressure gradient and gravity drop out as well, leaving:
 \begin{equation}
@@ -214,7 +214,7 @@ In other words, a ``turbulent'' or ``eddy'' viscosity is simply added to the mol
 
 The purpose of the eddy viscosity is to model the transfer of energy at length and time scales that are unresolved by the mean flow variables. The largest turbulence scales are called the {\em integral} scales. The smallest scales are called the {\em Kolmogorov} scales. A detailed discussion of the spectrum is considered beyond the scope of this section, but suffice it to say that most of the turbulent kinetic energy is in the integral scales, while turbulence is dissipated at the Kolmogorov scales where viscous damping converts the turbulent kinetic energy into heat. The notion of energy cascade, introduced by Richardson, is worth mentioning:
 \begin{itemize}
-\item Energy is taken from the mean flow and transferred to kinetic energy of turbulent eddies; this occurs around the integral scales; 
+\item Energy is taken from the mean flow and transferred to kinetic energy of turbulent eddies; this occurs around the integral scales;
 \item The turbulent eddies break up, transferring their energy to the eddies of smaller scale; a relatively small amount of energy is dissipated at this stage;
 \item The break-up process, or {\em cascade}, of eddies continues until the eddies become so small that they cannot survive the damping action of viscosity;
 \item The dissipation takes place at the smallest turbulence scales.
