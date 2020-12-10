@@ -301,7 +301,7 @@ Mass inlet boundaries are located where a prescribed source of air enters the co
 
 \subsection{Momentum Exchange at Boundaries}
 
-Where the fluid comes into contact with solid objects (compartment walls, for example) boundary conditions are required for the momentum equations and, where appropriate, for the solved turbulence variables. For most applications  the  no-slip  velocity  condition  is  assumed at solid surfaces ({\em i.e.}, zero flow directly adjacent to the surface). However, the proper specification of boundary conditions is complicated by the fact that the inner region of the turbulent boundary layer adjacent to a solid surface has very sharp velocity gradients. A large number of grid points are required to resolve this region, making the simulation computationally expensive and impractical for realistic compartments. An alternative, widely used approach to resolving the boundary layer is to use a so-called {\em wall function}~\cite{Launder}, which assumes that the tangential velocity is a logarithmic function of the normal distance from the surface. An empirical relationship relates the wall shear-stress to the resolved variables at the first grid point, and appropriate source terms can be derived for each solved equation. Details are provided in standard textbooks~\cite{Wilcox}.
+Where the fluid comes into contact with solid objects (compartment walls, for example) boundary conditions are required for the momentum equations and, where appropriate, for the solved turbulence variables. For most applications  the  no-slip  velocity  condition  is  assumed at solid surfaces ({\em i.e.} zero flow directly adjacent to the surface). However, the proper specification of boundary conditions is complicated by the fact that the inner region of the turbulent boundary layer adjacent to a solid surface has very sharp velocity gradients. A large number of grid points are required to resolve this region, making the simulation computationally expensive and impractical for realistic compartments. An alternative, widely used approach to resolving the boundary layer is to use a so-called {\em wall function}~\cite{Launder}, which assumes that the tangential velocity is a logarithmic function of the normal distance from the surface. An empirical relationship relates the wall shear-stress to the resolved variables at the first grid point, and appropriate source terms can be derived for each solved equation. Details are provided in standard textbooks~\cite{Wilcox}.
 
 Care is required in using the wall-function approach to ensure that the first grid point is positioned such that the empirical relationships are valid. Guidance should be taken from the model developer or the model documentation on the appropriate numerical grid to employ at surfaces. Commercial CFD models may offer advanced wall treatments that adapt automatically depending on the grid point and the flow regime, and these should generally be employed if available.
 
@@ -311,12 +311,12 @@ Conventional CFD models devote considerable attention to the velocity boundary c
 
 Hot gases lose heat to the structure at a rate determined by both the thermal properties of the bounding solids and the evolution of conditions within the gas phase. Early in the fire, the walls are nearly at ambient temperature and the rate of heat transfer will, all other things being equal, be at its greatest. Later, as the walls and other surfaces heat up, the rate of heat transfer decreases. In some situations it may be appropriate to treat the solid surfaces as adiabatic ({\em i.e.}, no heat transfer). However, care must be taken when adopting this approach as heat loss to the surfaces is likely to be an important mechanism. For example, in large compartments or tunnels this heat loss may account for most of the heat losses from the fire, and ignoring it will generate erroneous predictions.
 
-Where there is heat transfer, it is necessary to provide boundary conditions for the enthalpy and radiation equations, which in turn requires the temperature of the solid surface ($T_w$) be defined at each location adjoining the CFD grid. The surface temperature, together with its emissivity, establishes the radiative heat transfer rate for the radiation transfer equation. For the enthalpy equation the source term is the rate of convective heat transfer ($\dot{q}_c''$) to the surface from the adjoining grid point
+Where there is heat transfer, it is necessary to provide boundary conditions for the enthalpy and radiation equations, which in turn requires the temperature of the solid surface ($T_{\rm s}$) be defined at each location adjoining the CFD grid. The surface temperature, together with its emissivity, establishes the radiative heat transfer rate for the radiation transfer equation. For the enthalpy equation the source term is the rate of convective heat transfer ($\dot{q}_{\rm c}''$) to the surface from the adjoining grid point
 \begin{equation}
-\dot{q}_c'' = h_c \, (T_w-T_g)
+\dot{q}_{\rm c}'' = h_{\rm c} \, (T_{\rm s}-T_{\rm g})
 \label{eq:convection}
 \end{equation}
-where $T_g$ is the gas temperature at the nearest grid point and $h_c$ is the convective heat transfer coefficient. This coefficient can be defined as a constant as in a zone model or, alternatively, a more realistic approach is to compute the coefficient as a function of the local flow regime making use of an empirical wall function akin to that done for the momentum equations and turbulence model.
+where $T_{\rm g}$ is the gas temperature at the nearest grid point and $h_{\rm c}$ is the convective heat transfer coefficient. This coefficient can be defined as a constant as in a zone model or, alternatively, a more realistic approach is to compute the coefficient as a function of the local flow regime making use of an empirical wall function akin to that done for the momentum equations and turbulence model.
 
 The definition of the surface temperature is trivial in the case of isothermal boundaries where the surface is maintained at a fixed temperature. In general, however, the conduction of heat into the walls needs to be modeled. If it is assumed that conduction occurs only in the normal direction, then it may be treated by solving a one-dimensional heat conduction equation at each location on the surface adjoining the gas phase grid. The net conduction heat flux into the solid is given by the sum of the net radiation and convection fluxes at the surface.
 
@@ -332,10 +332,10 @@ The results of a CFD fire analysis can be sensitive to the location of the ``fre
 
 Fire protection applications often require an estimate of visibility, the distance through smoke that a person is expected to be able to see, say, an exit sign. Visibility distance may be derived from a CFD solution using the predicted concentration of soot particulates. The correspondence between smoke concentration and visibility is based on the work of Jin~\cite{Jin} and Mullholland~\cite{Mulholland} and is commonly implemented into CFD models using the following (or similar) expression for visibility distance:
 \begin{equation}
-S = \frac{K_1}{K_2 \, m_s}
+S = \frac{K_1}{K_2 \, m_{\rm s}'''}
 \label{eq:vis}
 \end{equation}
-Here $K_1$ is a constant usually set to 3 for reflecting signs and 8 for illuminated ones, $K_2$ is the specific extinction coefficient (often taken as 7.6 m$^2$/g for flaming combustion), and $m_s$ is the mass concentration of soot particles in units of g/m$^3$.  The fire model predicts this latter quantity. Visibility distance calculated in this way at a CFD grid cell represents the visibility corresponding to a homogenous smoke layer and assumes the smoke density at the cell applies everywhere in the domain. Using the CFD solution data, it is possible to perform a more realistic ``line of sight'' calculation using the computed data at each grid cell along this line~\cite{Husted}.
+Here $K_1$ is a constant usually set to 3 for reflecting signs and 8 for illuminated ones, $K_2$ is the specific extinction coefficient (often taken as 7.6 m$^2$/g for flaming combustion), and $m_{\rm s}'''$ is the mass of soot particles per unit volume in units of g/m$^3$.  The fire model predicts this latter quantity. Visibility distance calculated in this way at a CFD grid cell represents the visibility corresponding to a homogenous smoke layer and assumes the smoke density at the cell applies everywhere in the domain. Using the CFD solution data, it is possible to perform a more realistic ``line of sight'' calculation using the computed data at each grid cell along this line~\cite{Husted}.
 
 
 \subsection{Sprinklers and Fire Suppression}
@@ -406,6 +406,16 @@ The symbol ${\cal O}(\delta t)$ represents the {\em discretization error} -- neg
 
 There are some fire scenarios where it may not be necessary to solve the fully three-dimensional form of the governing equations. Sometimes, flows through ducts or tunnels can be approximated in two spatial dimensions. Also, where there is a symmetry in the fire scenario ({\em e.g.}, a simple compartment with a fire in the middle of the room), the computational effort can be reduced by a factor of two by modeling one-half of the geometry. The plane of symmetry is then defined as a symmetry boundary condition at the corresponding edge of the modeled domain. Tunnels are another application in which a vertical symmetry plane is often used, running along the length of the tunnel. Care is required in using symmetry boundaries to ensure that the imposed condition of symmetry is physically realistic. For example, in an LES calculation, it is generally undesirable to use a symmetry boundary because the methodology does not assume the fire to be symmetric (in a time-averaged sense).
 
+\paragraph{Grid Resolution}
+
+One of the most important decisions to make in designing a CFD simulation of fire is the size of the numerical grid. Conventional practice is to do a ``grid resolution study'' in which one performs the simulation using a relatively coarse grid and then gradually refines the grid in subsequent simulations until the results do not change significantly. The desired results and the meaning of ``change significantly'' are generally left to the user. For the wide variety of fire scenarios, there is no single result or metric that one can use to determine when the grid is ``good enough.'' 
+
+For simulations involving buoyant plumes, a useful way to characterize the resolution of the grid is via the non-dimensional expression $D^*/\delta x$, where $D^*$ is a characteristic fire diameter
+\begin{equation}
+  D^* = \left(\frac{\dot{Q}}{\rho_\infty \, c_p \, T_\infty \, \sqrt{g} } \right)^\frac{2}{5}  
+\end{equation} 
+and $\delta x$ is the nominal size of a mesh cell\footnote{The characteristic fire diameter is related to the characteristic fire size via the relation $Q^* = (D^*/D)^{5/2}$, where $D$ is the physical diameter of the fire. The term $Q^*$ is defined in Eq.~(\ref{qstar}).}. The quantity, $\dot{Q}$, is the total heat release rate of the fire. The quantity $D^*/\delta x$ can be thought of as the number of grid cells spanning the characteristic (not necessarily the physical) diameter of the fire. The more cells spanning the fire, the better the resolution of the calculation. It is better to assess the quality of the mesh in terms of this non-dimensional parameter, rather than an absolute grid cell size. For example, a cell size of 10~cm may be ``adequate,'' in some sense, for evaluating the spread of smoke and heat through a building from a relatively large fire, but may not be appropriate to study a very small, smoldering source.
+
 
 
 \subsection{Finite Volume Method}
@@ -467,43 +477,41 @@ The typical way to validate a CFD fire model is to compare its results to experi
 How can one determine if a particular application of the model has been validated? For example, suppose the problem at hand is a fire in a warehouse with a 10~m ceiling, sprinklers, roof vents, and HVAC system. There is probably no experimental data set that is exactly like it, and it would be too expensive to conduct new experiments. How does one determine if any validation work is appropriate for this scenario? The approach taken in a fire model validation study conducted by the U.S.~Nuclear Regulatory Commission (NRC) and the Electrical Power Research Institute (EPRI) was to characterize the experiments used in the study in terms of a handful of commonly used non-dimensional quantities from the fire literature~\cite{Hill:2007}. This essentially defines the ``parameter space'' for which the model was validated. The model users are warned that the models should only be applied within this parameter space. This prevents the tendency by users to simply declare that the model has been validated and can be used for any application. The non-dimensionalized parameters used in the NRC/EPRI study are:
 
 \begin{enumerate}
-\item {\em Fire Froude Number, $\dot{Q}^*$:}
+\item {\em Fire Froude Number, $Q^*$:}
 A convenient way to express the heat release rate of the fire relative to its base area is by way of the non-dimensionalized quantity:
 \begin{equation}
- Q^* = \frac{\dot{Q}}{\rho_\infty c_p T_\infty \sqrt{gD} \; D^2}
+ Q^* = \frac{\dot{Q}}{\rho_\infty c_p T_\infty \sqrt{gD} \; D^2} \label{qstar}
 \end{equation}
 where $\dot{Q}$ is the peak heat release rate of the fire and $D$ is the equivalent diameter of the base of the fire.
-The Fire Froude Number is a useful quantity for plume correlations and flame height estimates. A large value ($\dot{Q}^* \gg 1$) describes a fire for which the energy output is relatively large compared to its physical diameter, like an oil well blowout fire.  A low value ($\dot{Q}^* \ll 1$) describes a fire for which the energy output is relatively small compared to its diameter, like a brush fire.
+The Fire Froude Number is a useful quantity for plume correlations and flame height estimates. A large value ($Q^* \gg 1$) describes a fire for which the energy output is relatively large compared to its physical diameter, like an oil well blowout fire.  A low value ($Q^* \ll 1$) describes a fire for which the energy output is relatively small compared to its diameter, like a brush fire.
 
-\item {\em Flame Height relative to Ceiling Height, $L_{\hbox{\tiny f}}/H$:}
+\item {\em Flame Height relative to Ceiling Height, $L_{\rm f}/H$:}
 This ratio is a convenient way to express the physical size of the fire relative to the size of the room. A value greater than
 one indicates that there is flame impingement on the ceiling, an important consideration when evaluating devices such as sprinklers and smoke detectors.
-The Flame Height, $L_{\hbox{\tiny f}}$, is the height of the visible flame, based on Heskestad's correlation~\cite{Heskestad:FSJ1983}:
+The Flame Height, $L_{\rm f}$, is the height of the visible flame, based on Heskestad's correlation~\cite{Heskestad:FSJ1983}:
 \begin{equation}
-   L_{\hbox{\tiny f}} = D \, \left( 3.7 \, (\dot{Q}^*)^{2/5} - 1.02 \right) \label{Heskestad_Flame_Height}
+   L_{\rm f} = D \, \left( 3.7 \, (Q^*)^{2/5} - 1.02 \right) \label{Heskestad_Flame_Height}
 \end{equation}
 
 \item {\em Global Equivalence Ratio, $\phi$:}
-A convenient way to determine whether a compartment fire is limited by fuel or oxygen is to estimate the ratio of the fuel supply rate, $\dot{m}_f$, to the oxygen supply rate, $\dot{m}_{\hbox{\tiny O$_2$}}$, divided by the stoichiometric ratio, $r$:
+A convenient way to determine whether a compartment fire is limited by fuel or oxygen is to estimate the ratio of the fuel supply rate, $\dot{m}_{\rm f}$, to the oxygen supply rate, $\dot{m}_{\rm O_2}$, divided by the stoichiometric ratio, $r$:
 \begin{equation}
-   \phi = \frac{\dot{m}_f/\dot{m}_{\hbox{\tiny O$_2$}}}{r} = \frac{\dot{Q}}{\Delta h_{\hbox{\tiny O$_2$}} \; \dot{m}_{\hbox{\tiny O$_2$}} } \quad ; \quad  \dot{m}_{\hbox{\tiny O$_2$}} = \left\{
+   \phi = \frac{\dot{m}_{\rm f}/\dot{m}_{\rm O_2}}{r} = \frac{\dot{Q}}{\Delta h_{\rm O_2} \; \dot{m}_{\rm O_2} } \quad ; \quad  \dot{m}_{\rm O_2} = \left\{
    \begin{array}{r@{\quad \quad}l}
       \frac{1}{2} \, 0.23 \, A_0 \sqrt{H_0} & \hbox{Natural} \\ [0.1in]
       0.23 \, \rho \, \dot{V}       & \hbox{Mechanical} \end{array} \right.
 \end{equation}
-Here, $\Delta h$ is the heat of combustion, $\dot{Q}=\dot{m}_f \, \Delta h$ is the peak heat release rate of the fire, $\Delta h_{\hbox{\tiny O$_2$}}=r \, \Delta h$ is the heat of combustion per unit mass oxygen consumed, $A_0$ is the area of the compartment opening, $H_0$ is the height of the opening, $\rho$ is the density of air, and $\dot{V}$ is the volume flow of air into the compartment due to a ventilation system. The factor 0.23 is the mass fraction of oxygen in air. If $\phi<1$, the compartment is considered ``well-ventilated'' and if $\phi>1$, the compartment is considered ``under-ventilated.'' In general, under-ventilated fire scenarios are more challenging for the models because the combustion physics are more complicated.
+Here, $\Delta h$ is the heat of combustion, $\dot{Q}=\dot{m}_{\rm f} \, \Delta h$ is the peak heat release rate of the fire, $\Delta h_{\rm O_2}=r \, \Delta h$ is the heat of combustion per unit mass oxygen consumed, $A_0$ is the area of the compartment opening, $H_0$ is the height of the opening, $\rho$ is the density of air, and $\dot{V}$ is the volume flow of air into the compartment due to a ventilation system. The factor 0.23 is the mass fraction of oxygen in air. If $\phi<1$, the compartment is considered ``well-ventilated'' and if $\phi>1$, the compartment is considered ``under-ventilated.'' In general, under-ventilated fire scenarios are more challenging for the models because the combustion physics are more complicated.
 
-\item {\em Relative Distance along the Ceiling, $r_{\hbox{\tiny cj}}/H$:}
+\item {\em Relative Distance along the Ceiling, $r_{\rm cj}/H$:}
 This ratio indicates the distance from the fire plume of a sprinkler, smoke detector, {\em etc.}, relative to the
 compartment height, $H$. The maximum ceiling jet temperature, important  in determining device activation, has been shown to be a function of this ratio.
 
-\item {\em Relative Distance from the Fire, $r_{\hbox{\tiny rad}}/D$:}
-This ratio indicates whether a ``target'' is near or far from the fire. In general, it is more challenging to predict the
-radiative heat flux to objects near the fire.
+\item {\em Relative Distance from the Fire, $r_{\rm rad}/D$:}
+This ratio indicates whether a ``target'' is near or far from the fire. In general, it is more challenging to predict the radiative heat flux to objects near the fire.
 
 \item {\em Room Length and Width relative to the Ceiling Height, $L/H$ and $W/H$:}
-These ratios are useful mainly when assessing an empirical or zone model because most of the correlations used
-by these models are limited in terms of compartment aspect ratio. For CFD, extreme values of these ratios might indicate unusual fire behavior.
+These ratios are useful mainly when assessing an empirical or zone model because most of the correlations used by these models are limited in terms of compartment aspect ratio. For CFD, extreme values of these ratios might indicate unusual fire behavior.
 
 \item {\em Ceiling Height relative to the Fire Diameter, $H/D^*$:}
 This ratio is a non-dimensional measure of the height of the fire plume.
@@ -707,6 +715,8 @@ Moving forward will require a new generation of engineers who have expertise in 
 \begin{tabbing}
 $c_p$ 	\hspace{1in}     \= specific heat \\
 $D_\alpha$	             \> material diffusivity of species $\alpha$ \\
+$D$                      \> fire base diameter \\
+$D^*$                    \> characteristic fire base diameter \\
 $\mathbf{f}$	         \> external body force \\
 $h_{\rm s}$              \>	sensible enthalpy \\
 $h_{\rm c}$ 	         \> convective heat transfer coefficient \\
@@ -715,6 +725,8 @@ $k$	                     \> thermal	conductivity; turbulent	kinetic energy \\
 $\dot{m}_\alpha'''$      \> mass production (destruction) rate of species $\alpha$ per unit volume \\
 $p$	                     \> pressure \\
 Pr	                     \> Prandtl number \\
+$\dot{Q}$                \> total heat release rate of the fire \\
+$Q^*$                    \> fire Froude number \\
 $\dot{\mathbf{q}}''$	 \> heat flux vector \\
 $\dot{q}''$              \> heat release rate per unit area \\
 $\dot{q}'''$             \> heat release rate per unit volume \\
