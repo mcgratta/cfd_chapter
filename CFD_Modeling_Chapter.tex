@@ -26,7 +26,7 @@
 
 \section{Introduction}
 
-It was in the early 1920s that Lewis Richardson first demonstrated the feasibility of solving, using numerical methods, the governing equations of fluid flow~\cite{Richardson}  for the purpose of weather prediction. It was not for another 50 years that what is now known as computational fluid dynamics (CFD) emerged as a general analysis tool for the full breadth of fluid flow problems including those associated with fire.
+It was in the early 1920s that Lewis Richardson first demonstrated the feasibility of solving, using numerical methods, the governing equations of fluid flow for the purpose of weather prediction~\cite{Richardson}. It was not for another 50 years that what is now known as computational fluid dynamics (CFD) emerged as a general analysis tool for the full breadth of fluid flow problems including those associated with fire.
 
 In contrast to zone models, the techniques of CFD evolved outside the fire community and were subsequently imported into it. The same basic CFD technology is being developed, applied, verified, and validated for a wide range of applications. Problems and successes demonstrated elsewhere can often be exploited in the fire context, although there are many issues that are unique to fire that can only be the responsibility of the fire community. The same tools that are used to study, for example, heat transfer in an internal combustion engine can also be used to evaluate indoor air movement, early detection of smoke, and the dispersion of combustion products within the atmospheric boundary layer.
 
@@ -55,7 +55,7 @@ CFD applied to other fields of engineering may adopt other coordinate systems th
 
 \subsection{Physical Quantities of Interest}
 
-The solution of the discretized conservation equations yield fundamental properties of the fluid in each grid cell at a set of discrete time steps. CFD fire models typically treat the fluid as a mixture of ideal gas species. The {\em mass fraction} of each species, $Y_\alpha$, is the ratio of the mass of that species to the total mass of the mixture. These are non-dimensional quantities, and they sum to 1, $\sum_\alpha Y_\alpha = 1$. Likewise, the density of the gas mixture can be decomposed into components, $\rho = \sum_\alpha \rho Y_\alpha$. Thus, knowing the mass fractions of all the gas species is equivalent to knowing the density. The unit for density is typically kg/m$^3$.
+The solution of the discretized conservation equations yield fundamental properties of the fluid in each grid cell at a set of discrete time steps. CFD fire models typically treat the fluid as a mixture of ideal gas species. The {\em mass fraction} of each species, $Y_\alpha$, is the ratio of the mass of that species to the total mass of the mixture. These are non-dimensional quantities, and they sum to 1, $\sum_\alpha Y_\alpha = 1$. Likewise, the density of the gas mixture can be decomposed into components, $\rho = \sum_\alpha \rho Y_\alpha$. The unit for density is typically kg/m$^3$.
 
 The velocity of the gas mixture is expressed by the vector $\mathbf{u}=(u,v,w)$. Each component of velocity is a function of space and time. The unit for velocity is typically m/s.
 
@@ -65,11 +65,11 @@ The pressure, $p$, is typically decomposed into components:
 \end{equation}
 where $p_\infty$ is the pressure at ground level or other fixed reference point, $\rho_0$ is the initial or ambient background density field which is only a function of the vertical coordinate $z$, and $\tilde{p}$ is the perturbation pressure that drives the flow. The unit for pressure is typically the Pascal, Pa.
 
-The temperature of the gas mixture is typically not solved for directly, but rather the {\em specific enthalpy}:
+The temperature of the gas mixture is typically not solved for directly, but rather the {\em specific sensible enthalpy}:
 \begin{equation}
   h_{\rm s} = \sum_\alpha h_{{\rm s},\alpha}(T) \, Y_\alpha \quad ; \quad h_{{\rm s},\alpha}(T) = \int_{T_{\rm ref}}^T c_{p,\alpha}(T') \, \mbox{d}T'
 \end{equation}
-The values of the temperature-dependent, specific heats, $c_{p,\alpha}(T)$, are typically tabulated in reference handbooks. The unit for specific enthalpy and specific heat are typically J/kg and J/(kg$\cdot$K), respectively.
+The term {\em specific} indicates energy per unit mass, while the term {\em sensible} indicates a change in energy relative to a particular reference temperature, $T_{\rm ref}$. The values of the temperature-dependent, specific heats, $c_{p,\alpha}(T)$, are typically tabulated in reference handbooks. The units for specific sensible enthalpy and specific heat are typically J/kg and J/(kg$\cdot$K), respectively.
 
 
 
@@ -80,7 +80,13 @@ The conservation equations are typically derived by considering a fixed, closed 
    \frac{ \partial }{\partial t} \int_\Omega  (\rho Y_\alpha) \, {\rm d}V = -\int_{\partial \Omega} (\rho Y_\alpha \mathbf{u}) \cdot {\rm d}{\mathbf S} + \int_{\partial \Omega} (\rho D_\alpha \nabla Y_\alpha) \cdot {\rm d}\mathbf{S} + \int_\Omega \dot{m}_\alpha''' \, {\rm d}V
    \label{eq:spec_con_vol}
 \end{equation}
-This equation can be rewritten (using Green's Theorem) in an alternative form favored by modelers who employ a {\em finite-difference} as opposed to a {\em finite-volume} formulation of the governing equations:
+It is common practice to apply Ficks law to the diffusion terms such that
+\begin{equation}
+   \sum_\alpha \rho D_\alpha \nabla Y_\alpha = 0
+\end{equation}
+The diffusion coefficient, $D_\alpha$, approximates the diffusive flux of species $\alpha$ into nitrogen, the predominant gas species, and it is typically expressed in units of m$^2$/s. As will be described below, for large-scale fire simulations, the actual diffusion coefficients are replaced by empirical expressions that model the effect of turbulent mixing.
+
+Equation~(\ref{eq:spec_con_vol}) can be rewritten (using Green's Theorem) in an alternative form favored by modelers who employ a {\em finite-difference} as opposed to a {\em finite-volume} formulation of the governing equations:
 \begin{equation}
 \frac{\partial (\rho Y_\alpha)}{\partial t} + \nabla \cdot (\rho Y_\alpha \mathbf{u}) = \nabla \cdot \left( \rho D_\alpha \nabla Y_\alpha \right) + \dot{m}_\alpha'''
 \label{eq:speccon}
@@ -90,15 +96,7 @@ When all of the species equations are added together, the mass diffusion and pro
 \frac{\partial \rho}{\partial t} + \nabla \cdot \rho \mathbf{u} = 0
 \label{eq:masscon}
 \end{equation}
-Notice that the source and diffusion terms sum to zero:
-\begin{equation}
-   \sum_\alpha  \dot{m}_\alpha''' = 0 \quad ; \quad \sum_\alpha \rho D_\alpha \nabla Y_\alpha = 0
-\end{equation}
-Note that in CFD fire models, it is common practice to apply Ficks law:
-\begin{equation}
-   \mathbf{J_\alpha} = -\rho D_\alpha \nabla Y_\alpha
-\end{equation}
-The diffusion coefficient, $D_\alpha$, provides the relationship between the diffusion flux $\mathbf{J}_\alpha$ of species $\alpha$ and the spatial gradient of the local mass fraction, $Y_\alpha$. The minus sign expresses that the diffusion flux is always from higher concentration to lower concentration. The unit of $D_\alpha$ is typically m$^2$/s.
+
 
 \subsection{Conservation of Momentum}
 
